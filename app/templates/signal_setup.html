@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Connect Signal Messenger to Your Grow</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Step-by-Step Setup Guide</h4>
+        </div>
+        <div class="card-body">
+            <div class="setup-steps">
+                <h5>1. Verify Your Phone Number</h5>
+                <div class="mb-4">
+                    <form method="POST" action="{{ url_for('auth.update_phone_number') }}">
+                        {{ form.hidden_tag() }}
+                        <div class="form-group">
+                            <label>Your Phone Number (with country code):</label>
+                            <input type="tel" name="phone_number" class="form-control" 
+                                   value="{{ current_user.phone_number }}" 
+                                   placeholder="+1234567890"
+                                   required>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-2">Update Phone Number</button>
+                    </form>
+                </div>
+
+                <h5>2. Start a Chat with Our Bot</h5>
+                <div class="mb-4">
+                    <p>Send a message to our Signal bot number:</p>
+                    <div class="alert alert-info">
+                        <strong>Bot Number:</strong> {{ config.SIGNAL_BOT_NUMBER }}
+                    </div>
+                    <p>Send the following verification code to the bot:</p>
+                    <div class="alert alert-success">
+                        <strong>Your Code:</strong> {{ current_user.signal_verification_code }}
+                    </div>
+                </div>
+
+                <h5>3. Available Commands</h5>
+                <div class="mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>Basic Commands:</h6>
+                            <ul>
+                                <li><code>help</code> - Show all available commands</li>
+                                <li><code>status [plant_name]</code> - Get plant status</li>
+                                <li><code>water [plant_name]</code> - Record watering</li>
+                                <li><code>note [plant_name]: [text]</code> - Add a note</li>
+                                <li><code>list</code> - List your plants</li>
+                                <li><code>public</code> - List public plants</li>
+                                <li><code>follow [plant_id]</code> - Follow a public plant</li>
+                                <li><code>unfollow [plant_id]</code> - Unfollow a plant</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <h5>4. Notification Preferences</h5>
+                <div class="mb-4">
+                    <form method="POST" action="{{ url_for('auth.update_signal_preferences') }}">
+                        {{ pref_form.hidden_tag() }}
+                        <div class="form-check mb-2">
+                            <input type="checkbox" class="form-check-input" name="watering_reminder" 
+                                   {% if current_user.notification_preferences.watering_reminder %}checked{% endif %}>
+                            <label class="form-check-label">Watering Reminders</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" class="form-check-input" name="ph_alerts"
+                                   {% if current_user.notification_preferences.ph_alerts %}checked{% endif %}>
+                            <label class="form-check-label">pH Alerts</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" class="form-check-input" name="stage_changes"
+                                   {% if current_user.notification_preferences.stage_changes %}checked{% endif %}>
+                            <label class="form-check-label">Growth Stage Changes</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" class="form-check-input" name="group_updates"
+                                   {% if current_user.notification_preferences.group_updates %}checked{% endif %}>
+                            <label class="form-check-label">Group Grow Updates</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-2">Update Preferences</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

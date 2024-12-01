@@ -1,0 +1,704 @@
+{% extends "base.html" %}
+
+{% block title %}{{ plant.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            {% set profile_image = plant.images.filter_by(is_profile=true).first() %}
+            {% if profile_image %}
+            <img src="{{ url_for('uploaded_file', filename=profile_image.filename) }}" 
+                 class="card-img-top" alt="{{ plant.name }}"
+                 style="height: 300px; object-fit: cover;">
+            {% else %}
+            <div class="bg-secondary text-white d-flex align-items-center justify-content-center" 
+                 style="height: 300px;">
+                <i class="fas fa-seedling fa-5x"></i>
+            </div>
+            {% endif %}
+            <div class="card-body">
+                <h3 class="card-title">{{ plant.name }}</h3>
+                <p class="card-text">
+                    <strong>Strain:</strong> {{ plant.strain }}<br>
+                    <strong>Started:</strong> {{ plant.start_date.strftime('%Y-%m-%d') }}<br>
+                    <strong>Age:</strong> {{ (now - plant.start_date).days }} days<br>
+                    <strong>Type:</strong> {% if plant.is_group_grow %}Group Grow{% else %}Private{% endif %}
+                    {% if plant.is_archived %}
+                    <br><strong>Status:</strong> Archived ({{ plant.archive_reason.title() }})
+                    <br><strong>Archive Date:</strong> {{ plant.archive_date.strftime('%Y-%m-%d') }}
+                    {% if plant.archive_notes %}
+                    <br><strong>Archive Notes:</strong> {{ plant.archive_notes }}
+                    {% endif %}
+                    {% endif %}
+                </p>
+                <div class="d-flex justify-content-between flex-wrap">
+                    {% if not plant.is_archived %}
+                    <button class="btn btn-success water-plant mb-2">
+                        <i class="fas fa-tint"></i> Water
+                    </button>
+                    <button class="btn btn-info add-note mb-2">
+                        <i class="fas fa-sticky-note"></i> Add Note
+                    </button>
+                    {% if plant.owner_id == current_user.id or has_edit_permission %}
+                    <button class="btn btn-primary edit-plant mb-2">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    {% endif %}
+                    {% if plant.owner_id == current_user.id %}
+                    <button class="btn btn-warning archive-plant mb-2">
+                        <i class="fas fa-archive"></i> Archive
+                    </button>
+                    <button class="btn btn-danger delete-plant mb-2">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Recent Waterings</h4>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for watering in plant.waterings.order_by(Watering.timestamp.desc()).all() %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ watering.timestamp.strftime('%Y-%m-%d %H:%M') }}</h6>
+                                <p class="mb-1">Amount: {{ watering.amount }}L</p>
+                                {% if watering.nutrients %}
+                                <small>Nutrients: {{ watering.nutrients }}</small>
+                                {% endif %}
+                            </div>
+                            {% if plant.owner_id == current_user.id or permission and permission.can_edit %}
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary edit-watering" 
+                                        data-watering-id="{{ watering.id }}"
+                                        data-amount="{{ watering.amount }}"
+                                        data-nutrients="{{ watering.nutrients }}"
+                                        data-timestamp="{{ watering.timestamp.strftime('%Y-%m-%d %H:%M') }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-watering"
+                                        data-watering-id="{{ watering.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Growth Timeline</h5>
+                <button class="btn btn-primary btn-sm" id="addMilestone">
+                    <i class="fas fa-plus"></i> Add Milestone
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for milestone in plant.milestones.order_by(Milestone.timestamp.desc()).all() %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ milestone.title }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">
+                                {{ milestone.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                            </h6>
+                            <p class="card-text">{{ milestone.description }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Gallery</h5>
+                <button class="btn btn-primary btn-sm" id="addImage">
+                    <i class="fas fa-plus"></i> Add Image
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for image in plant.images.order_by(PlantImage.timestamp.desc()).all() %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <img src="{{ url_for('uploaded_file', filename=image.filename) }}" 
+                                 class="card-img-top" alt="Plant Image"
+                                 style="height: 200px; object-fit: cover;">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">{{ image.timestamp.strftime('%Y-%m-%d') }}</small>
+                                    {% if plant.owner_id == current_user.id or permission and permission.can_edit %}
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-danger delete-image"
+                                                data-image-id="{{ image.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Notes</h5>
+            </div>
+            <div class="card-body">
+                {% for note in plant.notes.order_by(Note.timestamp.desc()).all() %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <p class="card-text">{{ note.content }}</p>
+                        <small class="text-muted">
+                            {{ note.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                        </small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Water Modal -->
+<div class="modal fade" id="waterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Water Plant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="waterForm">
+                    <div class="mb-3">
+                        <label for="waterAmount" class="form-label">Amount (L)</label>
+                        <input type="number" step="0.1" class="form-control" id="waterAmount" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nutrients" class="form-label">Nutrients (optional)</label>
+                        <textarea class="form-control" id="nutrients" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitWater">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Note Modal -->
+<div class="modal fade" id="noteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="noteForm">
+                    <div class="mb-3">
+                        <label for="noteContent" class="form-label">Note</label>
+                        <textarea class="form-control" id="noteContent" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitNote">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Milestone Modal -->
+<div class="modal fade" id="milestoneModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Milestone</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="milestoneForm">
+                    <div class="mb-3">
+                        <label for="milestoneTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="milestoneTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="milestoneDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="milestoneDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitMilestone">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="imageForm">
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Image</label>
+                        <input type="file" class="form-control" id="image" accept="image/*" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="imageDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="imageDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="isProfile">
+                        <label class="form-check-label" for="isProfile">Set as profile image</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitImage">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Plant Modal -->
+<div class="modal fade" id="editPlantModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Plant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editPlantForm">
+                    <div class="mb-3">
+                        <label for="editPlantName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="editPlantName" name="name" value="{{ plant.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPlantStrain" class="form-label">Strain</label>
+                        <input type="text" class="form-control" id="editPlantStrain" name="strain" value="{{ plant.strain }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPlantStartDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="editPlantStartDate" name="start_date" value="{{ plant.start_date.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="editPlantIsGroupGrow" name="is_group_grow" {% if plant.is_group_grow %}checked{% endif %}>
+                        <label class="form-check-label" for="editPlantIsGroupGrow">Group Grow</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitEditPlant">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Watering Modal -->
+<div class="modal fade" id="editWateringModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Watering</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editWateringForm">
+                    <input type="hidden" id="editWateringId">
+                    <div class="mb-3">
+                        <label for="editWaterAmount" class="form-label">Amount (L)</label>
+                        <input type="number" step="0.1" class="form-control" id="editWaterAmount" name="amount" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editWaterDate" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="editWaterDate" name="date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editWaterTime" class="form-label">Time</label>
+                        <input type="time" class="form-control" id="editWaterTime" name="time" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editWaterNutrients" class="form-label">Nutrients (optional)</label>
+                        <input type="text" class="form-control" id="editWaterNutrients" name="nutrients">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitEditWatering">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Archive Plant Modal -->
+<div class="modal fade" id="archivePlantModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Archive Plant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="archivePlantForm">
+                    <div class="mb-3">
+                        <label class="form-label">Reason</label>
+                        <div class="form-check">
+                            <input type="radio" class="form-check-input" id="reasonHarvested" 
+                                   name="reason" value="harvested" required>
+                            <label class="form-check-label" for="reasonHarvested">Harvested</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="radio" class="form-check-input" id="reasonDied" 
+                                   name="reason" value="died" required>
+                            <label class="form-check-label" for="reasonDied">Died</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="archiveNotes" class="form-label">Notes (optional)</label>
+                        <textarea class="form-control" id="archiveNotes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitArchive">Archive Plant</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deletePlantModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Plant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger">Are you absolutely sure you want to delete this plant?</p>
+                <p>This will permanently delete:</p>
+                <ul>
+                    <li>All plant information</li>
+                    <li>All watering records</li>
+                    <li>All images</li>
+                    <li>All notes and milestones</li>
+                </ul>
+                <p>This action cannot be undone.</p>
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="confirmDelete" required>
+                    <label class="form-check-label" for="confirmDelete">
+                        I understand that this action is permanent and cannot be undone
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="submitDelete" disabled>
+                    Delete Permanently
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const plantId = {{ plant.id }};
+const waterModal = new bootstrap.Modal(document.getElementById('waterModal'));
+const noteModal = new bootstrap.Modal(document.getElementById('noteModal'));
+const milestoneModal = new bootstrap.Modal(document.getElementById('milestoneModal'));
+const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+const editPlantModal = new bootstrap.Modal(document.getElementById('editPlantModal'));
+const editWateringModal = new bootstrap.Modal(document.getElementById('editWateringModal'));
+const archivePlantModal = new bootstrap.Modal(document.getElementById('archivePlantModal'));
+const deletePlantModal = new bootstrap.Modal(document.getElementById('deletePlantModal'));
+
+document.querySelector('.water-plant').addEventListener('click', () => waterModal.show());
+document.querySelector('.add-note').addEventListener('click', () => noteModal.show());
+document.getElementById('addMilestone').addEventListener('click', () => milestoneModal.show());
+document.getElementById('addImage').addEventListener('click', () => imageModal.show());
+
+document.querySelector('.edit-plant')?.addEventListener('click', function() {
+    const modal = new bootstrap.Modal(document.getElementById('editPlantModal'));
+    modal.show();
+});
+
+document.getElementById('submitWater').addEventListener('click', function() {
+    const amount = document.getElementById('waterAmount').value;
+    const nutrients = document.getElementById('nutrients').value;
+    
+    fetch(`/plant/${plantId}/water`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `amount=${amount}&nutrients=${encodeURIComponent(nutrients)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            waterModal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+
+document.getElementById('submitNote').addEventListener('click', function() {
+    const content = document.getElementById('noteContent').value;
+    
+    fetch(`/plant/${plantId}/note`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `content=${encodeURIComponent(content)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            noteModal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+
+document.getElementById('submitMilestone').addEventListener('click', function() {
+    const title = document.getElementById('milestoneTitle').value;
+    const description = document.getElementById('milestoneDescription').value;
+    
+    fetch(`/plant/${plantId}/milestone`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `title=${encodeURIComponent(title)}&description=${encodeURIComponent(description)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            milestoneModal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+
+document.getElementById('submitImage').addEventListener('click', function() {
+    const formData = new FormData();
+    const imageFile = document.getElementById('image').files[0];
+    const description = document.getElementById('imageDescription').value;
+    const isProfile = document.getElementById('isProfile').checked;
+    
+    formData.append('image', imageFile);
+    formData.append('description', description);
+    if (isProfile) {
+        formData.append('is_profile', 'true');
+    }
+    
+    fetch(`/plant/${plantId}/image`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            imageModal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+
+document.getElementById('submitEditPlant')?.addEventListener('click', function() {
+    const formData = new FormData(document.getElementById('editPlantForm'));
+    
+    fetch(`/plant/${plantId}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error updating plant: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating plant');
+    });
+});
+
+// Edit watering
+document.querySelectorAll('.edit-watering').forEach(button => {
+    button.addEventListener('click', function() {
+        const wateringId = this.dataset.wateringId;
+        const amount = this.dataset.amount;
+        const nutrients = this.dataset.nutrients;
+        const timestamp = this.dataset.timestamp;
+        const [date, time] = timestamp.split(' ');
+        
+        document.getElementById('editWateringId').value = wateringId;
+        document.getElementById('editWaterAmount').value = amount;
+        document.getElementById('editWaterDate').value = date;
+        document.getElementById('editWaterTime').value = time;
+        document.getElementById('editWaterNutrients').value = nutrients;
+        
+        editWateringModal.show();
+    });
+});
+
+// Delete watering
+document.querySelectorAll('.delete-watering').forEach(button => {
+    button.addEventListener('click', function() {
+        if (confirm('Are you sure you want to delete this watering?')) {
+            const wateringId = this.dataset.wateringId;
+            
+            fetch(`/watering/${wateringId}/delete`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+    });
+});
+
+// Delete image
+document.querySelectorAll('.delete-image').forEach(button => {
+    button.addEventListener('click', function() {
+        if (confirm('Are you sure you want to delete this image?')) {
+            const imageId = this.dataset.imageId;
+            
+            fetch(`/plant-image/${imageId}/delete`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+    });
+});
+
+// Submit watering edit
+document.getElementById('submitEditWatering')?.addEventListener('click', function() {
+    const wateringId = document.getElementById('editWateringId').value;
+    const formData = new FormData(document.getElementById('editWateringForm'));
+    
+    fetch(`/watering/${wateringId}/edit`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            editWateringModal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+
+// Archive plant
+document.querySelector('.archive-plant')?.addEventListener('click', function() {
+    archivePlantModal.show();
+});
+
+document.getElementById('submitArchive')?.addEventListener('click', function() {
+    const formData = new FormData(document.getElementById('archivePlantForm'));
+    
+    fetch(`/plant/${plantId}/archive`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+
+// Delete plant
+document.querySelector('.delete-plant')?.addEventListener('click', function() {
+    deletePlantModal.show();
+});
+
+document.getElementById('confirmDelete')?.addEventListener('change', function() {
+    document.getElementById('submitDelete').disabled = !this.checked;
+});
+
+document.getElementById('submitDelete')?.addEventListener('click', function() {
+    if (!document.getElementById('confirmDelete').checked) {
+        return;
+    }
+    
+    fetch(`/plant/${plantId}/delete`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '/';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+</script>
+{% endblock %}

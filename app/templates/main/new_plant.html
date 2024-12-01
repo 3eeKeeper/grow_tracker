@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}New Plant{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Add New Plant</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Plant Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="strain" class="form-label">Strain</label>
+                        <input type="text" class="form-control" id="strain" name="strain" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_group_grow" name="is_group_grow">
+                        <label class="form-check-label" for="is_group_grow">Make this a group grow (public)</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Plant</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>My Plants</h2>
+            <a href="{{ url_for('main.new_plant') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>Add New Plant
+            </a>
+        </div>
+        <div class="row">
+            {% for plant in owned_plants %}
+            <div class="col-md-4 mb-4">
+                <div class="card plant-card h-100">
+                    {% set profile_image = plant.images.filter_by(is_profile=true).first() %}
+                    {% if profile_image %}
+                    <img src="{{ url_for('uploaded_file', filename=profile_image.filename) }}" 
+                         class="card-img-top" alt="{{ plant.name }}"
+                         style="height: 200px; object-fit: cover;">
+                    {% else %}
+                    <div class="bg-secondary text-white d-flex align-items-center justify-content-center" 
+                         style="height: 200px;">
+                        <i class="fas fa-seedling fa-3x"></i>
+                    </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ plant.name }}</h5>
+                        <p class="card-text">
+                            <small class="text-muted">Strain: {{ plant.strain }}</small><br>
+                            <small class="text-muted">Started: {{ plant.start_date.strftime('%Y-%m-%d') }}</small>
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('main.plant_profile', id=plant.id) }}" 
+                               class="btn btn-primary">View Profile</a>
+                            <div>
+                                <button class="btn btn-success quick-action-btn water-plant" 
+                                        data-plant-id="{{ plant.id }}"
+                                        title="Water Plant">
+                                    <i class="fas fa-tint"></i>
+                                </button>
+                                <button class="btn btn-info quick-action-btn add-note" 
+                                        data-plant-id="{{ plant.id }}"
+                                        title="Add Note">
+                                    <i class="fas fa-sticky-note"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% if permitted_plants %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>Shared With Me</h2>
+        <div class="row">
+            {% for plant in permitted_plants %}
+            <!-- Similar card structure as above -->
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if public_plants %}
+<div class="row">
+    <div class="col">
+        <h2>Public Group Grows</h2>
+        <div class="row">
+            {% for plant in public_plants %}
+            <div class="col-md-4 mb-4">
+                <div class="card plant-card h-100">
+                    {% set profile_image = plant.images.filter_by(is_profile=true).first() %}
+                    {% if profile_image %}
+                    <img src="{{ url_for('uploaded_file', filename=profile_image.filename) }}" 
+                         class="card-img-top" alt="{{ plant.name }}"
+                         style="height: 200px; object-fit: cover;">
+                    {% else %}
+                    <div class="bg-secondary text-white d-flex align-items-center justify-content-center" 
+                         style="height: 200px;">
+                        <i class="fas fa-seedling fa-3x"></i>
+                    </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ plant.name }}</h5>
+                        <p class="card-text">
+                            <small class="text-muted">Strain: {{ plant.strain }}</small><br>
+                            <small class="text-muted">Started: {{ plant.start_date.strftime('%Y-%m-%d') }}</small>
+                        </p>
+                        <a href="{{ url_for('main.plant_profile', id=plant.id) }}" 
+                           class="btn btn-primary">View Profile</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Water Plant Modal -->
+<div class="modal fade" id="waterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Water Plant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="waterForm">
+                    <div class="mb-3">
+                        <label for="waterAmount" class="form-label">Amount (L)</label>
+                        <input type="number" step="0.1" class="form-control" id="waterAmount" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nutrients" class="form-label">Nutrients (optional)</label>
+                        <textarea class="form-control" id="nutrients" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitWater">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Note Modal -->
+<div class="modal fade" id="noteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="noteForm">
+                    <div class="mb-3">
+                        <label for="noteContent" class="form-label">Note</label>
+                        <textarea class="form-control" id="noteContent" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitNote">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPlantId = null;
+const waterModal = new bootstrap.Modal(document.getElementById('waterModal'));
+const noteModal = new bootstrap.Modal(document.getElementById('noteModal'));
+
+document.querySelectorAll('.water-plant').forEach(button => {
+    button.addEventListener('click', function() {
+        currentPlantId = this.dataset.plantId;
+        waterModal.show();
+    });
+});
+
+document.querySelectorAll('.add-note').forEach(button => {
+    button.addEventListener('click', function() {
+        currentPlantId = this.dataset.plantId;
+        noteModal.show();
+    });
+});
+
+document.getElementById('submitWater').addEventListener('click', function() {
+    const amount = document.getElementById('waterAmount').value;
+    const nutrients = document.getElementById('nutrients').value;
+    
+    fetch(`/plant/${currentPlantId}/water`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `amount=${amount}&nutrients=${encodeURIComponent(nutrients)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            waterModal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+
+document.getElementById('submitNote').addEventListener('click', function() {
+    const content = document.getElementById('noteContent').value;
+    
+    fetch(`/plant/${currentPlantId}/note`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `content=${encodeURIComponent(content)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            noteModal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+</script>
+{% endblock %}

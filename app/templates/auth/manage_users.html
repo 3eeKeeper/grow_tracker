@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card bg-dark text-light">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-user-plus me-2"></i>Create New User</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control bg-dark text-light" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control bg-dark text-light" id="password" name="password" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_admin" name="is_admin">
+                            <label class="form-check-label" for="is_admin">Admin User</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-2"></i>Create User
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card bg-dark text-light">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-users me-2"></i>Existing Users</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Admin</th>
+                                    <th>Plants</th>
+                                    <th>Last Seen</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.is_admin %}
+                                            <span class="badge bg-success">Yes</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.plant_count }}</td>
+                                    <td>
+                                        {% if user.last_seen %}
+                                            {{ user.last_seen.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        {% else %}
+                                            Never
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not user.is_admin %}
+                                            <a href="{{ url_for('auth.delete_user', id=user.id) }}" 
+                                               class="btn btn-danger btn-sm"
+                                               onclick="return confirm('Are you sure you want to delete this user?');">
+                                                Delete
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
