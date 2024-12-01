@@ -43,6 +43,59 @@ A comprehensive web-based application for tracking cannabis plant growth, design
 - **Real-time Updates**: Flask-SocketIO
 - **Image Handling**: PIL/Pillow
 
+## Quick Start
+
+### One-Click Setup
+
+1. Run the setup script:
+   ```bash
+   python setup.py
+   ```
+
+This will:
+- Create a virtual environment
+- Install all dependencies
+- Initialize the database
+- Create a default admin user
+
+### Manual Setup
+
+1. Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Create a `.env` file in the project root with:
+   ```
+   FLASK_APP=run.py
+   FLASK_ENV=development
+   SECRET_KEY=your-secret-key-here
+   DATABASE_URL=sqlite:///app.db
+   ```
+
+4. Initialize the database:
+   ```bash
+   flask db upgrade
+   python create_admin.py
+   ```
+
+5. Run the application:
+   ```bash
+   python run.py
+   ```
+
+### Default Admin Credentials
+- Username: `admin`
+- Password: `admin123`
+
+**Important:** Change the admin password after first login!
+
 ## Installation
 
 1. Clone the repository:
@@ -130,11 +183,6 @@ grow-tracker/
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Default Admin Account
-
-Username: admin
-Password: admin123 (change this immediately after first login)
 
 ## Security Notice
 
