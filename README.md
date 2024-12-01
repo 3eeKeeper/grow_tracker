@@ -96,6 +96,24 @@ This will:
 
 **Important:** Change the admin password after first login!
 
+### Resetting Users
+To reset all users back to default settings and recreate the admin user:
+```bash
+# Make sure your virtual environment is activated
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Run the database initialization script
+python init_db.py
+```
+
+This will:
+- Drop all existing tables
+- Recreate all tables fresh
+- Create a new admin user with default credentials
+- Create a new test user with default credentials
+
+**Note:** This operation will delete all existing user data. Make sure to backup any important data before proceeding.
+
 ## Installation
 
 1. Clone the repository:
